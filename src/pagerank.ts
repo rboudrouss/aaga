@@ -11,7 +11,7 @@ export function computePageRank(
 
   let ranks = new Array(N).fill(1 / N);
 
-  for (let i = 0; i < maxIterations; i++) {
+  for (let iter = 0; iter < maxIterations; iter++) {
     // Calculate dangling node contribution
     const danglingSum = danglingNodes.reduce(
       (acc, node) => acc + ranks[node],
@@ -44,7 +44,7 @@ export function computePageRank(
     ranks = newRanks;
 
     if (diff < tolerance) {
-      console.log(`Converged after ${i + 1} iterations`);
+      console.log(`Converged after ${iter + 1} iterations`);
       break;
     }
   }
