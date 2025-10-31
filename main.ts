@@ -1,8 +1,14 @@
-export function add(a: number, b: number): number {
-  return a + b;
-}
+import { computePageRank, Graph } from "./src/pagerank.ts";
 
-// Learn more at https://docs.deno.com/runtime/manual/examples/module_metadata#concepts
+const graph: Graph = {
+  nodes: [0, 1],
+  edges: [
+    [0, 1],
+    [1, 1],
+    [1, 0],
+  ],
+};
+
 if (import.meta.main) {
-  console.log("Add 2 + 3 =", add(2, 3));
+  console.log(computePageRank(graph));
 }
