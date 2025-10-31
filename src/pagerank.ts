@@ -12,30 +12,40 @@ export function computePageRank(
   maxIterations: number = 100,
   tolerance: number = 1e-6
 ): number[] {
-  const { graph: cleanedGraph, danglingNodes } = preprocessGraph(graph);
-  const N = cleanedGraph.nodes.length;
-  const nodes = cleanedGraph.nodes;
-  const outDegrees = new Array(N).fill(0);
-  cleanedGraph.edges.forEach((edge) => {
-    outDegrees[edge[0]]++;
-  });
+  const { incomingEdges, outDegrees, danglingNodes, N } =
+    preprocessGraph(graph);
 
   let ranks = new Array(N).fill(1 / N);
 
   for (let i = 0; i < maxIterations; i++) {
-    const newRanks = new Array(N).fill(0);
-    const danglingSum = danglingNodes.reduce((acc, node) => acc + ranks[node], 0);
+    // Calculate dangling node contribution
+    const danglingSum = danglingNodes.reduce(
+      (acc, node) => acc + ranks[node],
+      0
+    );
+    const danglingContribution = (damping * danglingSum) / N;
 
-    nodes.forEach((node) => {
-      const danglingContribution = danglingSum / N;
-      const dampingTerm = (1 - damping) / N;
-      const contribution = dampingTerm + damping * danglingContribution;
-      cleanedGraph.edges[node].forEach((neighbor) => {
-        newRanks[neighbor] += contribution / outDegrees[node];
+    // Base rank from damping factor and dangling nodes
+    const baseRank = (1 - damping) / N + danglingContribution;
+
+    // Initialize all nodes with base rank, then add contributions from incoming edges
+    const newRanks = Array.from({ length: N }, (_, node) => {
+      // Start with base rank
+      let rank = baseRank;
+
+      // Add contributions from all nodes that link to this node
+      incomingEdges[node].forEach((fromNode) => {
+        rank += (damping * ranks[fromNode]) / outDegrees[fromNode];
       });
+
+      return rank;
     });
 
-    const diff = newRanks.reduce((acc, rank, index) => acc + Math.abs(rank - ranks[index]), 0);
+    // Check for convergence
+    const diff = newRanks.reduce(
+      (acc, rank, index) => acc + Math.abs(rank - ranks[index]),
+      0
+    );
 
     ranks = newRanks;
 
@@ -51,53 +61,58 @@ export function computePageRank(
 /**
  * Remove self-loops and parallel edges
  * Rename nodes to their position in the nodes array
+ * Build reverse adjacency list (incoming edges) and compute out-degrees
  * @param graph
  */
 function preprocessGraph(graph: Graph): {
-  graph: Graph;
+  incomingEdges: number[][];
+  outDegrees: number[];
   danglingNodes: number[];
+  N: number;
 } {
+  const N = graph.nodes.length;
+
   // Create a mapping from original node names to their index
   const nodeToIndex = new Map<number, number>();
   graph.nodes.forEach((node, index) => {
     nodeToIndex.set(node, index);
   });
 
-  const edges = new Map<number, Set<number>>();
-  for (const [from, to] of graph.edges) {
-    if (from === to) {
-      continue;
-    }
-    // Use the index instead of the original node name
-    const fromIndex = nodeToIndex.get(from)!;
-    const toIndex = nodeToIndex.get(to)!;
+  // Build forward adjacency list (using Set to avoid parallel edges)
+  const outgoingSet: Set<number>[] = Array.from(
+    { length: N },
+    () => new Set<number>()
+  );
 
-    if (!edges.has(fromIndex)) {
-      edges.set(fromIndex, new Set<number>());
-    }
-    edges.get(fromIndex)!.add(toIndex);
-  }
+  // Build reverse adjacency list (incoming edges)
+  const incomingSet: Set<number>[] = Array.from(
+    { length: N },
+    () => new Set<number>()
+  );
 
-  // Dangling nodes are now represented by their indices
-  const danglingNodes: number[] = [];
-  for (let i = 0; i < graph.nodes.length; i++) {
-    if (!edges.has(i)) {
-      danglingNodes.push(i);
+  // Add edges to both adjacency sets, filtering out self-loops
+  graph.edges.forEach(([from, to]) => {
+    if (from !== to) {
+      const fromIndex = nodeToIndex.get(from)!;
+      const toIndex = nodeToIndex.get(to)!;
+      outgoingSet[fromIndex].add(toIndex);
+      incomingSet[toIndex].add(fromIndex);
     }
-  }
+  });
 
-  const edgesArray: [number, number][] = [];
-  for (const [from, toSet] of edges) {
-    for (const to of toSet) {
-      edgesArray.push([from, to]);
-    }
-  }
+  // Convert Sets to arrays
+  const incomingEdges: number[][] = incomingSet.map((set) => Array.from(set));
+  const outDegrees: number[] = outgoingSet.map((set) => set.size);
+
+  // Find dangling nodes (nodes with no outgoing edges)
+  const danglingNodes: number[] = outDegrees
+    .map((degree, index) => (degree === 0 ? index : -1))
+    .filter((index) => index !== -1);
 
   return {
-    graph: {
-      nodes: Array.from({ length: graph.nodes.length }, (_, i) => i),
-      edges: edgesArray,
-    },
+    incomingEdges,
+    outDegrees,
     danglingNodes,
+    N,
   };
 }
