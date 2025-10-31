@@ -105,9 +105,9 @@ function preprocessGraph(graph: Graph): {
   const outDegrees: number[] = outgoingSet.map((set) => set.size);
 
   // Find dangling nodes (nodes with no outgoing edges)
-  const danglingNodes: number[] = outDegrees
-    .map((degree, index) => (degree === 0 ? index : -1))
-    .filter((index) => index !== -1);
+  const danglingNodes: number[] = outDegrees.flatMap((degree, index) =>
+    degree === 0 ? [index] : []
+  );
 
   return {
     incomingEdges,
