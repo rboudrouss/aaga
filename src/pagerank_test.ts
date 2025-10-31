@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
-import { computePageRank, type Graph } from "./pagerank.ts";
+import { computePageRank } from "./pagerank.ts";
+import type { Graph } from "./utils.ts";
 
 /**
  * Helper function to check if two numbers are approximately equal
@@ -230,8 +231,10 @@ Deno.test("PageRank: Large graph performance", () => {
   const endTime = performance.now();
 
   assertEquals(ranks.length, 100);
-  console.log(`Large graph (100 nodes) computed in ${(endTime - startTime).toFixed(2)}ms`);
-  
+  console.log(
+    `Large graph (100 nodes) computed in ${(endTime - startTime).toFixed(2)}ms`
+  );
+
   // Verify sum is approximately 1
   const sum = ranks.reduce((a, b) => a + b, 0);
   assertAlmostEquals(sum, 1.0, 1e-6);
@@ -289,4 +292,3 @@ Deno.test("PageRank: Normalization check", () => {
   // Each score should be less than 1
   ranks.forEach((rank) => assertEquals(rank < 1, true));
 });
-
