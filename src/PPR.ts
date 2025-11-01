@@ -114,12 +114,11 @@ function preprocessGraph(graph: Graph): {
 
   // Add edges to both adjacency sets, filtering out self-loops
   graph.edges.forEach(([from, to]) => {
-    if (from !== to) {
-      const fromIndex = nodeToIndex.get(from)!;
-      const toIndex = nodeToIndex.get(to)!;
-      outgoingSet[fromIndex].add(toIndex);
-      incomingSet[toIndex].add(fromIndex);
-    }
+    if (from === to) return;
+    const fromIndex = nodeToIndex.get(from)!;
+    const toIndex = nodeToIndex.get(to)!;
+    outgoingSet[fromIndex].add(toIndex);
+    incomingSet[toIndex].add(fromIndex);
   });
 
   // Convert Sets to arrays
