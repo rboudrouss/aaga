@@ -24,55 +24,11 @@ export function computePersonalizedPageRank(
   const { incomingEdges, outDegrees, danglingNodes, N, nodeToIndex } =
     preprocessGraph(graph);
 
-  let personalizationVector: number[];
-
-  if ("seeds" in personalization) {
-    // Validate seed nodes
-    if (personalization.seeds.length === 0) {
-      throw new Error("seeds must contain at least one node");
-    }
-
-    // Convert seed nodes to indices and validate they exist
-    const seedIndices: number[] = [];
-    for (const seedNode of personalization.seeds) {
-      const index = nodeToIndex.get(seedNode);
-      if (index === undefined) {
-        throw new Error(`Seed node ${seedNode} not found in graph`);
-      }
-      seedIndices.push(index);
-    }
-
-    // Build personalization vector (non-zero only for seed nodes)
-    personalizationVector = new Array(N).fill(0);
-    const seedWeight = 1 / seedIndices.length;
-    for (const seedIndex of seedIndices) {
-      personalizationVector[seedIndex] = seedWeight;
-    }
-  } else {
-    // Validate personalization vector
-    if (personalization.vector.length !== N) {
-      throw new Error(
-        `Personalization vector length (${personalization.vector.length}) must match number of nodes (${N})`
-      );
-    }
-
-    // Verify vector sums to 1.0
-    const sum = personalization.vector.reduce((acc, val) => acc + val, 0);
-    if (Math.abs(sum - 1.0) > tolerance) {
-      throw new Error(
-        `Personalization vector must sum to 1.0 (current sum: ${sum})`
-      );
-    }
-
-    // Verify all values are non-negative
-    if (personalization.vector.some((val) => val < 0)) {
-      throw new Error(
-        "Personalization vector must contain only non-negative values"
-      );
-    }
-
-    personalizationVector = personalization.vector;
-  }
+  const personalizationVector = vectorFromPersonalization(
+    personalization,
+    nodeToIndex,
+    N
+  );
 
   // Initialize ranks with personalization vector
   let ranks = [...personalizationVector];
@@ -176,4 +132,62 @@ function preprocessGraph(graph: Graph): {
     N,
     nodeToIndex,
   };
+}
+
+function vectorFromPersonalization(
+  personalization: { seeds: number[] } | { vector: number[] },
+  nodeToIndex: Map<number, number>,
+  N: number
+): number[] {
+  if ("seeds" in personalization) {
+    // Validate seed nodes
+    if (personalization.seeds.length === 0) {
+      throw new Error("seeds must contain at least one node");
+    }
+
+    // Convert seed nodes to indices and validate they exist
+    const seedIndices: number[] = [];
+    for (const seedNode of personalization.seeds) {
+      const index = nodeToIndex.get(seedNode);
+      if (index === undefined) {
+        throw new Error(`Seed node ${seedNode} not found in graph`);
+      }
+      seedIndices.push(index);
+    }
+
+    // Build personalization vector (non-zero only for seed nodes)
+    const personalizationVector = new Array(N).fill(0);
+    const seedWeight = 1 / seedIndices.length;
+    for (const seedIndex of seedIndices) {
+      personalizationVector[seedIndex] = seedWeight;
+    }
+
+    return personalizationVector;
+  }
+  // ELSE personalization is a custom vector
+
+  // Validate personalization vector
+  if (personalization.vector.length !== N) {
+    throw new Error(
+      `Personalization vector length (${personalization.vector.length}) must match number of nodes (${N})`
+    );
+  }
+
+  // Verify vector sums to 1.0
+  const sum = personalization.vector.reduce((acc, val) => acc + val, 0);
+  const tolerance = 1e-6;
+  if (Math.abs(sum - 1.0) > tolerance) {
+    throw new Error(
+      `Personalization vector must sum to 1.0 (current sum: ${sum})`
+    );
+  }
+
+  // Verify all values are non-negative
+  if (personalization.vector.some((val) => val < 0)) {
+    throw new Error(
+      "Personalization vector must contain only non-negative values"
+    );
+  }
+
+  return personalization.vector;
 }
