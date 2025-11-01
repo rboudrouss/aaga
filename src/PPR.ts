@@ -77,7 +77,13 @@ export function computePersonalizedPageRank(
  * Remove self-loops and parallel edges
  * Rename nodes to their position in the nodes array
  * Build reverse adjacency list (incoming edges) and compute out-degrees
- * @param graph
+ * @param graph The directed graph
+ * @returns Preprocessed graph data and node mapping
+ *   - incomingEdges: Array of incoming edges for each node (indexed by node index)
+ *   - outDegrees: Array of out-degrees for each node (indexed by node index)
+ *   - danglingNodes: Array of dangling nodes (nodes with no outgoing edges)
+ *   - N: Number of nodes
+ *   - nodeToIndex: Mapping from original node names to their index
  */
 function preprocessGraph(graph: Graph): {
   incomingEdges: number[][];
